@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App de Funas</title>
+<style>
+    body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+    header { background: #4CAF50; color: white; padding: 1rem; text-align: center; }
+    main { padding: 1rem; max-width: 800px; margin: auto; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+    th, td { padding: 0.5rem; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background: #f2f2f2; }
+    tr:hover { background: #f1f1f1; }
+    .btn { cursor: pointer; padding: 0.3rem 0.6rem; margin: 0 0.2rem; border: none; border-radius: 4px; }
+    .btn-edit { background: #2196F3; color: white; }
+    .btn-view { background: #FFC107; color: white; }
+    .btn-anchor { background: #9C27B0; color: white; }
+    .form-container { background: white; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    label { display: block; margin-top: 0.5rem; }
+    input, select, textarea { width: 100%; padding: 0.4rem; margin-top: 0.2rem; border-radius: 4px; border: 1px solid #ccc; }
+    .filters { margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .circle { display: inline-block; width: 15px; height: 15px; border-radius: 50%; }
+    .Leve { background: blue; }
+    .Media { background: orange; }
+    .Grave { background: red; }
+    @media (max-width: 600px) {
+        table, thead, tbody, th, td, tr { display: block; }
+        tr { margin-bottom: 1rem; }
+        th { display: none; }
+        td { padding-left: 50%; position: relative; }
+        td::before { position: absolute; left: 0; width: 45%; padding-left: 0.5rem; font-weight: bold; white-space: nowrap; }
+        td:nth-of-type(1)::before { content: "Fecha"; }
+        td:nth-of-type(2)::before { content: "Funado"; }
+        td:nth-of-type(3)::before { content: "Funadora"; }
+        td:nth-of-type(4)::before { content: "Motivo"; }
+        td:nth-of-type(5)::before { content: "Efecto"; }
+        td:nth-of-type(6)::before { content: "Gravedad"; }
+        td:nth-of-type(7)::before { content: "Estado"; }
+        td:nth-of-type(8)::before { content: "Acciones"; }
+    }
+    .note { font-size: 0.9rem; color: #555; margin-bottom: 1rem; }
+</style>
+</head>
+<body>
+<header>
+    <h1>App de Funas 😄</h1>
+</header>
+<main>
+<div class="note">Recuerda: esto es solo divertido entre colegas, ¡no hay que tomárselo demasiado en serio!</div>
+<div class="form-container">
+    <h2>Registrar nueva funa</h2>
+    <form id="funaForm">
+        <label>Fecha:<input type="date" id="fecha" required></label>
+        <label>Funado:<input type="text" id="funado" required></label>
+        <label>Funadora:<input type="text" id="funadora"></label>
+        <label>Motivo:<input type="text" id="motivo"></label>
+        <label>Detalle:<textarea id="detalle"></textarea></label>
+        <label>Efecto:
+            <select id="efecto">
+                <option value="Personal">Personal</option>
+                <option value="Grupo">Grupo</option>
+            </select>
+        </label>
+        <label>Gravedad:
+            <select id="gravedad">
+                <option value="Leve">Leve</option>
+                <option value="Media">Media</option>
+                <option value="Grave">Grave</option>
+            </select>
+        </label>
+        <label>Estado:
+            <select id="estado">
+                <option value="Activa">Activa</option>
+                <option value="Perdonada">Perdonada</option>
+                <option value="Pendiente">Pendiente</option>
+            </select>
+        </label>
+        <button type="submit" class="btn btn-edit" style="margin-top:0.5rem;">Agregar Funa</button>
+    </form>
+</div>
+<div class="filters">
+    <input type="text" id="search" placeholder="Buscar...">
+    <select id="filterEstado">
+        <option value="">Todos los estados</option>
+        <option value="Activa">Activa</option>
+        <option value="Perdonada">Perdonada</option>
+        <option value="Pendiente">Pendiente</option>
+    </select>
+    <select id="filterEfecto">
+        <option value="">Todos los efectos</option>
+        <option value="Personal">Personal</option>
+        <option value="Grupo">Grupo</option>
+    </select>
+</div>
+<table id="funaTable">
+    <thead>
+        <tr>
+            <th>Fecha</th><th>Funado</th><th>Funadora</th><th>Motivo</th><th>Efecto</th><th>Gravedad</th><th>Estado</th><th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+</main>
+<script>
+let funas = JSON.parse(localStorage.getItem('funas') || '[]');
+let editIndex = null;
+
+function saveFunas() {
+    localStorage.setItem('funas', JSON.stringify(funas));
+    renderTable();
+}
+
+function renderTable() {
+    const tbody = document.querySelector('#funaTable tbody');
+    tbody.innerHTML = '';
+    let search = document.getElementById('search').value.toLowerCase();
+    let filterEstado = document.getElementById('filterEstado').value;
+    let filterEfecto = document.getElementById('filterEfecto').value;
+    funas.forEach((f, i) => {
+        if ((filterEstado && f.estado !== filterEstado) || (filterEfecto && f.efecto !== filterEfecto)) return;
+        if (search && !(f.funado.toLowerCase().includes(search) || f.funadora.toLowerCase().includes(search) || f.motivo.toLowerCase().includes(search) || f.detalle.toLowerCase().includes(search))) return;
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${f.fecha}</td>
+            <td>${f.funado}</td>
+            <td>${f.funadora || ''}</td>
+            <td>${f.motivo || ''}</td>
+            <td>${f.efecto}</td>
+            <td><span class="circle ${f.gravedad}"></span></td>
+            <td>${f.estado}</td>
+            <td>
+                <button class="btn btn-view" onclick="viewFuna(${i})">Ver</button>
+                <button class="btn btn-edit" onclick="editFuna(${i})">Editar</button>
+                <button class="btn btn-anchor" onclick="toggleAnchor(${i})">Anclar</button>
+            </td>
+        `;
+        if(f.anclada) tr.style.background = '#ffffcc';
+        tbody.appendChild(tr);
+    });
+}
+
+function viewFuna(i) {
+    const f = funas[i];
+    alert(`Fecha: ${f.fecha}\nFunado: ${f.funado}\nFunadora: ${f.funadora || ''}\nMotivo: ${f.motivo || ''}\nDetalle: ${f.detalle || ''}\nEfecto: ${f.efecto}\nGravedad: ${f.gravedad}\nEstado: ${f.estado}`);
+}
+
+function editFuna(i) {
+    const f = funas[i];
+    document.getElementById('fecha').value = f.fecha;
+    document.getElementById('funado').value = f.funado;
+    document.getElementById('funadora').value = f.funadora;
+    document.getElementById('motivo').value = f.motivo;
+    document.getElementById('detalle').value = f.detalle;
+    document.getElementById('efecto').value = f.efecto;
+    document.getElementById('gravedad').value = f.gravedad;
+    document.getElementById('estado').value = f.estado;
+    editIndex = i;
+}
+
+function toggleAnchor(i) {
+    funas[i].anclada = !funas[i].anclada;
+    saveFunas();
+}
+
+document.getElementById('funaForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    const nueva = {
+        fecha: document.getElementById('fecha').value,
+        funado: document.getElementById('funado').value,
+        funadora: document.getElementById('funadora').value,
+        motivo: document.getElementById('motivo').value,
+        detalle: document.getElementById('detalle').value,
+        efecto: document.getElementById('efecto').value,
+        gravedad: document.getElementById('gravedad').value,
+        estado: document.getElementById('estado').value,
+        anclada: false
+    };
+    if(editIndex !== null){
+        funas[editIndex] = nueva;
+        editIndex = null;
+    } else {
+        funas.push(nueva);
+    }
+    this.reset();
+    saveFunas();
+});
+
+document.getElementById('search').addEventListener('input', renderTable);
+document.getElementById('filterEstado').addEventListener('change', renderTable);
+document.getElementById('filterEfecto').addEventListener('change', renderTable);
+
+renderTable();
+</script>
+</body>
+</html>
