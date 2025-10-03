@@ -41,6 +41,21 @@
     }
     .note { font-size: 0.9rem; color: #555; margin-bottom: 1rem; }
 </style>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDPJeRYMAUFOZgBUB-qFZ7thZIIOnQ6evA",
+    authDomain: "funapp-fbffa.firebaseapp.com",
+    projectId: "funapp-fbffa",
+    storageBucket: "funapp-fbffa.firebasestorage.app",
+    messagingSenderId: "383815953305",
+    appId: "1:383815953305:web:fe913a6076e4d2d2544108"
+  };
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
 </head>
 <body>
 <header>
@@ -104,13 +119,14 @@
 </table>
 </main>
 <script>
-let funas = JSON.parse(localStorage.getItem('funas') || '[]');
+let funas = [];
 let editIndex = null;
+const funasRef = db.collection("funas");
 
-function saveFunas() {
-    localStorage.setItem('funas', JSON.stringify(funas));
-    renderTable();
-}
+funasRef.onSnapshot(snapshot => {
+  funas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  renderTable();
+});
 
 function renderTable() {
     const tbody = document.querySelector('#funaTable tbody');
@@ -128,7 +144,8 @@ function renderTable() {
             <td>${f.funadora || ''}</td>
             <td>${f.motivo || ''}</td>
             <td>${f.efecto}</td>
-            <td><span class="circle ${f.gravedad}"></span></td>
+            <td><span class="circle ${f.gr
+avedad}"></span></td>
             <td>${f.estado}</td>
             <td>
                 <button class="btn btn-view" onclick="viewFuna(${i})">Ver</button>
@@ -160,8 +177,8 @@ function editFuna(i) {
 }
 
 function toggleAnchor(i) {
-    funas[i].anclada = !funas[i].anclada;
-    saveFunas();
+    const f = funas[i];
+    funasRef.doc(f.id).update({ anclada: !f.anclada });
 }
 
 document.getElementById('funaForm').addEventListener('submit', function(e){
@@ -178,20 +195,19 @@ document.getElementById('funaForm').addEventListener('submit', function(e){
         anclada: false
     };
     if(editIndex !== null){
-        funas[editIndex] = nueva;
+        const f = funas[editIndex];
+        funasRef.doc(f.id).set(nueva);
         editIndex = null;
     } else {
-        funas.push(nueva);
+        funasRef.add(nueva);
     }
     this.reset();
-    saveFunas();
 });
 
 document.getElementById('search').addEventListener('input', renderTable);
 document.getElementById('filterEstado').addEventListener('change', renderTable);
 document.getElementById('filterEfecto').addEventListener('change', renderTable);
 
-renderTable();
 </script>
 </body>
 </html>
